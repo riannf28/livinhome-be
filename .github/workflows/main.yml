@@ -1,0 +1,35 @@
+on:
+  push:
+    branches: [main]
+name: 🚀 Deploy website Bengkel on push
+jobs:
+  web-deploy:
+    name: 🎉 Auto Deploy Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v2.3.2
+
+      - name: 📂 Sync files
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: ${{ secrets.FTP_PORT }}
+          server-dir: ./
+          log-level: standard
+          protocol: ftps
+          dry-run: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/github*
+            **/public/**
+            **/github*/**
+            **/storage/**
+
+      - name: Install dependencies
+        run: |
+          composer update
+          php artisan optimize:clear
