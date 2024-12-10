@@ -67,8 +67,8 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ## Setting Environment
 
-1.Pertama yang dilakuin setelah clone bisa langsung *composer install*
-2.Buat database sesuai yang ada di .env, *livinhome* namanya kalo di .env (ini bebas tinggal disesuain)
-3.Kalo udah sesuai jalanin perintah *php artisan key:generate*
-4.Buat migrate databasenya jalanin perintah *php artisan migrate:fresh --seed*
-5.Terakhir run *php artisan serve*
+1. Pertama yang dilakuin setelah clone bisa langsung *composer install*
+2. Buat database sesuai yang ada di .env, *livinhome* namanya kalo di .env (ini bebas tinggal disesuain)
+3. Kalo udah sesuai jalanin perintah *php artisan key:generate*
+4. Buat migrate databasenya jalanin perintah *php artisan migrate:fresh --seed*
+5. Terakhir run *php artisan serve*
