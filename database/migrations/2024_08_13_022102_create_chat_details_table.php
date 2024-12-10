@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('chat_id')->nullable();
             $table->foreign('chat_id')->references('id')->on('chats');
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->unsignedBigInteger('sender_id')->nullable();
+            $table->foreign('sender_id')->references('id')->on('users');
             $table->longText('message');
+            $table->timestamp('read_at')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

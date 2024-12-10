@@ -29,10 +29,12 @@ return new class extends Migration
             $table->longText('alamat');
             $table->longText('catatan_alamat')->nullable();
             $table->string('fasilitas');
+            $table->integer('kamar_mandi')->nullable();
             $table->integer('lebar_tanah');
             $table->integer('daya_listrik');
             $table->string('sumber_air');
             $table->integer('total_kamar');
+            $table->integer('luas_kamar');
             $table->integer('total_lemari');
             $table->integer('minimum_sewa');
             $table->integer('kapasitas_motor')->nullable();

@@ -3,6 +3,7 @@
 namespace App\Models\Transaction;
 
 use App\Models\Property;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,9 +12,11 @@ use Illuminate\Support\Str;
 class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
+    protected $table = 'transactions';
 
     protected $fillable = [
         'booking_code',
+        'user_id',
         'property_id',
         'fullname',
         'phone_number',
@@ -27,9 +30,16 @@ class Transaction extends Model
         'checkin',
         'additional_note',
         'status',
+        'is_cancel',
+        'proof_of_payment',
         'bank',
         'payment_date',
     ];
+
+    public function user()
+    {
+        return $this->hasMany(User::class, 'id', 'user_id');
+    }
 
     public function property()
     {

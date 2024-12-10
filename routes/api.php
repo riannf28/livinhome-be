@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\API\Admin\AdminController;
+use App\Http\Controllers\API\Admin\PemilikController;
+use App\Http\Controllers\API\Admin\PenyewaController;
+use App\Http\Controllers\API\Admin\PesananController;
 use App\Http\Controllers\API\Auth\AuthAdminController;
 use App\Http\Controllers\API\Auth\AuthOwnerController;
 use App\Http\Controllers\API\Auth\AuthRenterController;
 use App\Http\Controllers\API\Auth\OTP\OTPController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\ChatController;
 use App\Http\Controllers\API\HomepageController;
 use App\Http\Controllers\API\PengajuanSewaController;
 use App\Http\Controllers\API\Profile\ProfileController;
@@ -52,13 +57,17 @@ Route::middleware('auth:sanctum')->group(function () {
     ], function () {
         Route::get('', [ProfileOwnerController::class, 'index']);
         Route::post('update', [ProfileOwnerController::class, 'update']);
+        Route::post('update-image', [ProfileOwnerController::class, 'update_image']);
+        Route::post('update-idCard', [ProfileOwnerController::class, 'update_id_card']);
     });
 
     Route::group([
         'prefix' => 'property',
         'middleware' => ['auth', 'role:renter']
     ], function () {
-        Route::get('detail-property/{id}', [PropertyController::class, 'detail_property']);
+        Route::get('detail-property/{property_id}', [PropertyController::class, 'detail_property'])->name('detail-property');
+        Route::get('livin-match/{property_id}', [PropertyController::class, 'livin_match']);
+        Route::get('search/{city}', [PropertyController::class, 'search']);
     });
 
     Route::group([
@@ -73,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('list-property', [PropertyController::class, 'list_property']);
         Route::get('get-data-property/{id}', [PropertyController::class, 'get_property']);
         Route::post('update-property', [PropertyController::class, 'update']);
+        Route::post('upload-image', [PropertyController::class, 'upload_image']);
     });
 
     Route::group([
@@ -91,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
     ], function () {
         Route::get('', [CartController::class, 'list_cart']);
         Route::post('add-cart', [CartController::class, 'add_cart']);
+        Route::post('delete-cart', [CartController::class, 'delete']);
     });
 
     // Renter
@@ -98,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function () {
         'prefix' => 'survey',
         'middleware' => ['auth', 'role:renter']
     ], function () {
+        Route::get('', [SurveyController::class, 'index']);
+        Route::get('list-reason', [SurveyController::class, 'list_reason']);
+        Route::get('detail/{id}', [SurveyController::class, 'detail']);
         Route::post('submit-survey', [SurveyController::class, 'submit_survey']);
         Route::post('edit-submit-survey', [SurveyController::class, 'edit_submit_survey']);
         Route::post('cancel-submit', [SurveyController::class, 'cancel_survey']);
@@ -119,8 +133,11 @@ Route::middleware('auth:sanctum')->group(function () {
         'middleware' => ['auth', 'role:renter']
     ], function () {
         Route::get('get-data-property/{property_id}', [TransactionController::class, 'index']);
+        Route::get('detail/{id_transaction}', [TransactionController::class, 'detail_transaction']);
         Route::post('store-transaction-data', [TransactionController::class, 'store_transaction']);
         Route::post('payment', [TransactionController::class, 'payment']);
+        Route::post('cancel-transaction', [TransactionController::class, 'cancel']);
+        Route::post('proof-of-payment', [TransactionController::class, 'proof_of_payment']);
     });
 
     Route::group([
@@ -129,6 +146,45 @@ Route::middleware('auth:sanctum')->group(function () {
     ], function () {
         Route::get('beranda', [HomepageController::class, 'beranda']);
         Route::get('list-pemilik', [HomepageController::class, 'list_pemilik']);
+    });
+
+    Route::group([
+        'prefix' => 'admin',
+        'middleware' => ['auth', 'role:admin']
+    ], function () {
+        Route::get('dashboard', [AdminController::class, 'dashboard']);
+
+        Route::group([
+            'prefix' => 'penyewa'
+        ], function () {
+            Route::get('category/{type}', [PenyewaController::class, 'index']);
+            Route::get('detail/{id}', [PenyewaController::class, 'detail']);
+        });
+
+        Route::group([
+            'prefix' => 'pemilik'
+        ], function () {
+            Route::get('category/{type}', [PemilikController::class, 'index']);
+            Route::get('detail/{id}', [PemilikController::class, 'detail']);
+            Route::post('update', [PemilikController::class, 'update']);
+            Route::post('delete', [PemilikController::class, 'delete']);
+        });
+
+        Route::group([
+            'prefix' => 'pesanan'
+        ], function () {
+            Route::get('', [PesananController::class, 'index']);
+            Route::get('detail/{id}', [PesananController::class, 'detail']);
+        });
+    });
+
+    Route::group([
+        'prefix' => 'chat',
+    ], function () {
+        Route::get('list-chat', [ChatController::class, 'list_chat']);
+        Route::get('chat-detail/{chat_id}', [ChatController::class, 'detail_chat']);
+        Route::post('chat-owner', [ChatController::class, 'store_chat_owner'])->middleware('role:renter');
+        Route::post('store-chat', [ChatController::class, 'store_chat']);
     });
 });
 
@@ -141,6 +197,7 @@ Route::group([
 
     Route::post('register/owner', [AuthOwnerController::class, 'register']);
     Route::post('register/renter', [AuthRenterController::class, 'register']);
+    Route::post('register/admin', [AuthAdminController::class, 'register']);
 });
 
 Route::post('sent-whatsapp', [OTPController::class, 'sent_otp_whatsapp']);

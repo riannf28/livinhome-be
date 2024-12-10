@@ -24,14 +24,14 @@ class TransactionFactory extends Factory
             'phone_number' => $this->faker->regexify('(628)[0-9]{9,12}'), // Format Indonesia
             'gender' => $this->faker->randomElement(['male', 'female']),
             'job' => $this->faker->jobTitle,
-            'duration' => $this->faker->numberBetween(1, 12) . ' months',
+            'duration' => $this->faker->randomElement([1, 3, 12]),
             'marriage' => $this->faker->randomElement(['single', 'married', 'divorced']),
             'number_of_renters' => $this->faker->numberBetween(1, 3),
             'school_name' => $this->faker->optional()->company,
             'id_card' => $this->faker->text(200),
             'checkin' => $this->faker->date,
             'additional_note' => $this->faker->optional()->text(500),
-            'status' => $this->faker->boolean,
+            'status' => $this->faker->optional()->randomElement([null, true, false]),
             'bank' => $this->faker->optional()->randomElement(['BCA', 'Mandiri', 'BNI', 'BRI', 'CIMB']),
             'payment_date' => $this->faker->optional()->date,
         ];

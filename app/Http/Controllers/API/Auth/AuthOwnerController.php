@@ -55,8 +55,10 @@ class AuthOwnerController extends Controller
 
 
             $tokenResult = $user->createToken('authToken')->plainTextToken;
+            $photo_profile = asset("uploads/photo-profile/{$user->fullname}/{$user->photo_profile}");
 
-            return ResponseFormatter::success($user->roles, 'Login Successfully', $tokenResult);
+
+            return ResponseFormatter::success([$user->roles, $photo_profile], 'Login Successfully', $tokenResult);
         } catch (Exception $error) {
             return ResponseFormatter::success($error->getMessage(), 'Error');
         }
@@ -91,6 +93,11 @@ class AuthOwnerController extends Controller
         $check_phone_number_exist = User::where('phone_number', $phone_number)->first();
         if (!empty($check_phone_number_exist)) {
             return ResponseFormatter::error(null, 'Nomor Telp sudah terdaftar', 400);
+        }
+
+        $check_email_exist = User::where('email', $request->email)->first();
+        if (!empty($check_email_exist)) {
+            return ResponseFormatter::error(null, 'Email Sudah Terdaftar', 400);
         }
 
         // return response()->json(ResponseFormatter::timestampToDate($request->date_of_birth));

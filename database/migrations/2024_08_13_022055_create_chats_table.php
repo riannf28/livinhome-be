@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('property_id')->nullable();
             $table->foreign('property_id')->references('id')->on('properties');
+            $table->unsignedBigInteger('sender_id')->nullable();
+            $table->foreign('sender_id')->references('id')->on('users');
+            $table->unsignedBigInteger('receiver_id')->nullable();
+            $table->foreign('receiver_id')->references('id')->on('users');
             $table->softDeletes();
             $table->timestamps();
         });

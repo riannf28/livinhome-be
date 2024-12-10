@@ -23,13 +23,13 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ListRulesSeeder::class,
             ListFacilitySeeder::class,
-            PropertySeeder::class,
-            FacilityPropertySeeder::class,
-            RulePropertySeeder::class,
+            // PropertySeeder::class,
+            // FacilityPropertySeeder::class,
+            // RulePropertySeeder::class,
             ReasonCancelSeeder::class,
             ListAdditionalFeaturesSeeder::class,
-            RatingPropertySeeder::class,
-            TransactionSeeder::class,
+            // RatingPropertySeeder::class,
+            // TransactionSeeder::class,
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
+use App\Models\Transaction\Survey;
 use App\Models\Transaction\Transaction;
 use Exception;
 use Illuminate\Http\Request;
@@ -81,10 +82,21 @@ class HomepageController extends Controller
                 ->where('status', 1)
                 ->count();
 
+            $total_pengajuan_sewa = Transaction::whereNull('status')->whereHas('property', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->count();
+            $total_pengajuan_survey = Survey::whereHas('property', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+                ->whereNull('status')->where('is_cancel', false)
+                ->count();
+
             $result = array();
             $result['name'] = $user->fullname;
             $result['total_property'] = $total_property;
             $result['total_transaksi'] = $total_transaksi;
+            $result['total_pengajuan_sewa'] = $total_pengajuan_sewa;
+            $result['total_pengajuan_survey'] = $total_pengajuan_survey;
 
             return ResponseFormatter::success($result);
         } catch (Exception $error) {

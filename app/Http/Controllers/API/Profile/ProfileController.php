@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API\Profile;
 
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
+use App\Models\Transaction\Transaction;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,8 +16,30 @@ class ProfileController extends Controller
     public function index()
     {
         try {
+
+            $transaction_history = array();
+
             $data = Auth::user();
-            $data->id_card = asset("uploads/ktp/{$data->fullname}/" . $data->id_card);
+            $data->id_card = asset("uploads/ktp-person/{$data->fullname}/" . $data->id_card);
+            $data->photo_profile = asset("uploads/photo-profile/{$data->fullname}/{$data->photo_profile}");
+
+            $transaction = Transaction::where('fullname', $data->fullname)->get();
+
+            if (empty($transaction[0])) {
+                $transaction = Transaction::where('phone_number', $data->phone_number)->get();
+            }
+            if (empty($transaction[0])) {
+                $transaction_history = null;
+            } else {
+                foreach ($transaction as $item) {
+                    $transaction_history['property_name'] = $item->property[0]->nama;
+                    $transaction_history['owner_property'] = $item->property[0]->user[0]->fullname;
+                    $transaction_history['transaction_id'] = $item->id;
+                    $transaction_history['property_id'] = $item->property_id;
+                    $transaction_history['status'] = $item->status;
+                }
+            }
+            $data['transaction_history'] = $transaction_history;
 
             return ResponseFormatter::success($data);
         } catch (Exception $error) {
@@ -64,6 +87,8 @@ class ProfileController extends Controller
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
+        // return response()->json($request->all());
+
         try {
             $user = Auth::user();
             $user->fill($request->all());
@@ -73,18 +98,16 @@ class ProfileController extends Controller
                 $photo_profile = $request->file('photo_profile');
                 $photo_profile_name = time() . '-' . $user->fullname . '.' . $photo_profile->getClientOriginalExtension();
 
-                $existingPhotoPathPhotoProfile = "public/uploads/photo-profile/{$user->fullname}/{$user->id_card}";
+                $existingPhotoPathPhotoProfile = "public/uploads/photo-profile/{$user->fullname}/{$user->photo_profile}";
                 if (Storage::exists($existingPhotoPathPhotoProfile)) {
                     Storage::delete($existingPhotoPathPhotoProfile);
                 }
-
-                Storage::putFileAs("public/uploads/photo-profile/{$user->fullname}", $photo_profile, $photo_profile_name);
                 $user->photo_profile = $photo_profile_name;
 
-                $user->photo_profile_url = asset("uploads/photo-profile/{$user->fullname}/{$photo_profile_name}");
+                Storage::putFileAs("public/uploads/photo-profile/{$user->fullname}", $photo_profile, $photo_profile_name);
             }
 
-            if ($request->hasFile('photo_profile')) {
+            if ($request->hasFile('id_card')) {
                 $id_card = $request->file('id_card');
                 $id_card_name = time() . '-' . $user->fullname . '.' . $id_card->getClientOriginalExtension();
 
@@ -95,12 +118,47 @@ class ProfileController extends Controller
 
                 Storage::putFileAs("public/uploads/ktp-person/{$user->fullname}", $id_card, $id_card_name);
                 $user->id_card = $id_card_name;
-                $user->id_card_url = asset("uploads/ktp-person/{$user->fullname}/{$id_card_name}");
             }
+            $user->save();
+
+            if (!empty($photo_profile_name)) {
+                $user->photo_profile_url = asset("uploads/photo-profile/{$user->fullname}/{$photo_profile_name}");
+            } else {
+                $user->photo_profile_url = null;
+            }
+
+            if (!empty($photo_profile_name)) {
+                $user->id_card_url = asset("uploads/ktp-person/{$user->fullname}/{$id_card_name}");
+            } else {
+                $user->id_card_url = null;
+            }
+
+            $uploads_path = storage_path('app/public/uploads');
+            $this->setPermissions($uploads_path);
+            // return response()->json($user);
 
             return ResponseFormatter::success($user);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
+        }
+    }
+
+    function setPermissions($dir, $folder_permission = 0755, $file_permission = 0644)
+    {
+        $items = scandir($dir);
+        foreach ($items as $item) {
+            if ($item == '.' || $item == '..') {
+                continue;
+            }
+
+            $path = $dir . '/' . $item;
+
+            if (is_dir($path)) {
+                chmod($path, $folder_permission);
+                $this->setPermissions($path, $folder_permission, $file_permission);
+            } else {
+                chmod($path, $file_permission);
+            }
         }
     }
 }

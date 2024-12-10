@@ -58,9 +58,7 @@ class ResponseFormatter
 
     public static function timestampToDate($timestamp)
     {
-        $timestampInSeconds = $timestamp / 1000;
-
-        return Carbon::createFromTimestamp($timestampInSeconds)->format('Y-m-d');
+        return gmdate('Y-m-d', $timestamp);
     }
 
     public static function dateToTimestamp($date)

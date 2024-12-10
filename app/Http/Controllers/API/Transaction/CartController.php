@@ -39,6 +39,25 @@ class CartController extends Controller
         }
     }
 
+    public function delete(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:carts,id'
+        ]);
+
+        if ($validator->fails()) {
+            return ResponseFormatter::error(null, $validator->messages()->all(), 400);
+        }
+
+        try {
+            Cart::where('id', $request->id)->delete();
+
+            return ResponseFormatter::success();
+        } catch (Exception $error) {
+            return ResponseFormatter::exception_error($error->getMessage());
+        }
+    }
+
     public function list_cart()
     {
         $query = Cart::query();

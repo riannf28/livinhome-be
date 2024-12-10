@@ -13,17 +13,17 @@ class ChatDetails extends Model
 
     protected $fillable = [
         'chat_id',
-        'user_id',
+        'sender_id',
         'message',
     ];
 
     public function chat()
     {
-        return $this->hasMany(Chat::class, 'id', 'chat_id');
+        return $this->belongsTo(Chat::class, 'chat_id');
     }
 
-    public function user()
+    public function sender()
     {
-        return $this->hasMany(User::class, 'id', 'user_id');
+        return $this->belongsTo(User::class, 'sender_id');
     }
 }

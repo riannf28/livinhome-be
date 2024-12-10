@@ -42,11 +42,12 @@ class AuthRenterController extends Controller
             }
 
             $tokenResult = $user->createToken('authToken')->plainTextToken;
+            $photo_profile = asset("uploads/photo-profile/{$user->fullname}/{$user->photo_profile}");
         } catch (Exception $error) {
             return ResponseFormatter::success($error->getMessage(), 'Error');
         }
 
-        return ResponseFormatter::success($user->roles, 'Login Successfully', $tokenResult);
+        return ResponseFormatter::success([$user->roles, $photo_profile], 'Login Successfully', $tokenResult);
     }
 
     public function register(Request $request)
@@ -77,6 +78,11 @@ class AuthRenterController extends Controller
         $check_phone_number_exist = User::where('phone_number', $phone_number)->first();
         if (!empty($check_phone_number_exist)) {
             return ResponseFormatter::error(null, 'Nomor Telp sudah terdaftar', 400);
+        }
+
+        $check_email_exist = User::where('email', $request->email)->first();
+        if (!empty($check_email_exist)) {
+            return ResponseFormatter::error(null, 'Email Sudah Terdaftar', 400);
         }
 
         try {

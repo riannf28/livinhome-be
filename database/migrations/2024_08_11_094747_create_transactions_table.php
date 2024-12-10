@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users');
             $table->string('booking_code')->nullable()->unique();
             $table->unsignedBigInteger('property_id')->nullable();
             $table->foreign('property_id')->references('id')->on('properties');
@@ -21,7 +23,7 @@ return new class extends Migration
             $table->string('gender');
             $table->string('job');
             $table->string('duration');
-            $table->string('marriage');
+            $table->string('marriage')->nullable();
             $table->integer('number_of_renters');
             $table->string('school_name')->nullable();
             $table->longText('id_card');
@@ -30,6 +32,8 @@ return new class extends Migration
             $table->boolean('status')->nullable();
             $table->string('bank')->nullable();
             $table->date('payment_date')->nullable();
+            $table->boolean('is_cancel')->nullable();
+            $table->longText('proof_of_payment')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

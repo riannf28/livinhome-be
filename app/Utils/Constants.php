@@ -4,5 +4,5 @@ namespace App\Utils;
 
 class Constants
 {
-    public static $category_property = ['apartement', 'kost', 'rental'];
+    public static $category_property = ['apartment', 'kost', 'kontrakan'];
 }

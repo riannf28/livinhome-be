@@ -14,7 +14,11 @@ class SurveyController extends Controller
     public function calon_penyewa()
     {
         try {
-            $data = Survey::with('user', 'property')->whereNull('status')->where('is_cancel', false)->get();
+            $data = Survey::with('user', 'property')
+                ->whereHas('property', function ($query) {
+                    $query->where('user_id', auth()->user()->id);
+                })
+                ->whereNull('status')->where('is_cancel', false)->get();
             return ResponseFormatter::success($data);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
@@ -46,7 +50,10 @@ class SurveyController extends Controller
         }
 
         try {
-            $data = Survey::where('id', $request->survey_id)->where('is_cancel', false)->first();
+            $data = Survey::where('id', $request->survey_id)->first();
+            if ($data->is_cancel == true) {
+                return ResponseFormatter::success(null, 'Survey Telah Dihapus');
+            }
             $data->status = true;
             $data->save();
 
@@ -70,7 +77,10 @@ class SurveyController extends Controller
         }
 
         try {
-            $data = Survey::where('id', $request->survey_id)->where('is_cancel', false)->first();
+            $data = Survey::where('id', $request->survey_id)->first();
+            if ($data->is_cancel == false) {
+                return ResponseFormatter::success(null, 'Survey Telah Dihapus');
+            }
             $data->status = false;
             $data->save();
 

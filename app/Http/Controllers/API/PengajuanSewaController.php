@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
+use App\Models\ImageBuildProperty;
 use App\Models\Transaction\AdditionalFeatures;
 use App\Models\Transaction\ListAdditionalFeatures;
 use App\Models\Transaction\Transaction;
@@ -22,9 +23,10 @@ class PengajuanSewaController extends Controller
             $data = Transaction::whereHas('property', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->where('status', null)
+                // ->where('status', null)
                 ->with('property')
                 ->get();
+
             $data->each(function ($item) {
                 $item->tanggal_masuk = ResponseFormatter::dateToTimestamp($item->created_at);
                 $deadline = Carbon::parse($item->created_at)->addHours(env('MAX_PENGAJUAN_HOUR'))->addDays(env('MAX_PENGAJUAN_DAY'));
@@ -47,14 +49,24 @@ class PengajuanSewaController extends Controller
         try {
             $user = Auth::user();
             $data = Transaction::where('id', $id)
+                ->with('property')
                 ->whereHas('property', function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                 })
-                ->where('status', null)
+                // ->where('status', null)
                 ->first();
 
             if (!empty($data)) {
 
+                // dd($data->property[0]->user[0]->fullname, ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan'));
+                if (!empty(ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan')[0])) {
+
+                    $path = "uploads/properties/{$data->property[0]->user[0]->fullname}/{$data->property[0]->nama}/" . ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan')[0];
+                } else {
+                    $path = null;
+                }
+                $data->property[0]['image'] = asset($path);
+                unset($data->property[0]->user);
 
                 $data['total_price'] = null;
 
@@ -74,8 +86,17 @@ class PengajuanSewaController extends Controller
                     $data->rent_duration = '1 Tahun';
                     $data['total_price'] += $data->property[0]->harga_sewa_tahun;
                 }
-                $data->checkin = $this->convertDateToTimestamp($data->checkin);
 
+                // OVVERIDE
+                $data['total_price'] = $data->property[0]->harga_sewa_1_bulan * $data->duration;
+
+                $data->checkout = $this->convertDateToTimestamp(Carbon::parse($data->checkin)->addMonth($data->duration));
+                $data->checkin = $this->convertDateToTimestamp($data->checkin);
+                if (empty($data->proof_of_payment)) {
+                    $data->proof_of_payment = null;
+                } else {
+                    $data->proof_of_payment = asset("/uploads/transaction/proof-of-payment/{$data->fullname}/{$data->proof_of_payment}");
+                }
                 $deadline = Carbon::parse($data->created_at)->addHours(env('MAX_PENGAJUAN_HOUR'))->addDays(env('MAX_PENGAJUAN_DAY'));
 
                 if (now()->lt($deadline)) {
@@ -98,7 +119,6 @@ class PengajuanSewaController extends Controller
                         $additional_features_array[] = $feature;
                     }
                 }
-
                 $data['additional_features'] = $additional_features_array;
                 return ResponseFormatter::success($data);
             }
@@ -130,6 +150,7 @@ class PengajuanSewaController extends Controller
             $data = Transaction::where('id', $request->transaction_id)
                 ->where('status', null)
                 ->first();
+            $data = Transaction::where('id', $request->transaction_id)->first();
 
             if (!empty($data)) {
 
@@ -173,7 +194,7 @@ class PengajuanSewaController extends Controller
 
                 return ResponseFormatter::success($result);
             }
-            return ResponseFormatter::success();
+            return ResponseFormatter::success(null, 'Data Not Found');
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }
@@ -194,10 +215,14 @@ class PengajuanSewaController extends Controller
 
         try {
             $data = Transaction::where('id', $request->transaction_id)->first();
-            $data->status = false;
-            $data->save();
+            if (!empty($data)) {
 
-            return ResponseFormatter::success();
+                // $data->status = false;
+                // $data->save();
+                $data->delete();
+                return ResponseFormatter::success($data);
+            }
+            return ResponseFormatter::success(null, 'Data Not Found');
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }

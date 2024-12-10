@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Chat\ChatDetails;
 use App\Models\Transaction\Cart;
 use App\Models\Transaction\Survey;
+use App\Models\Transaction\Transaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,6 +27,7 @@ class User extends Authenticatable
         'gender',
         'date_of_birth',
         'phone_number',
+        'school_name',
         'job',
         'city',
         'status',
@@ -82,5 +84,10 @@ class User extends Authenticatable
     public function rating_property()
     {
         return $this->belongsTo(RatingProperty::class);
+    }
+
+    public function transaction()
+    {
+        return $this->belongsTo(Transaction::class);
     }
 }
