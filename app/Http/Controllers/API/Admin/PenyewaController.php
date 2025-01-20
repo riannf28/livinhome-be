@@ -4,7 +4,9 @@ namespace App\Http\Controllers\API\Admin;
 
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
+use App\Models\ListRules;
 use App\Models\Property;
+use App\Models\RuleProperty;
 use App\Models\Transaction\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
@@ -34,25 +36,37 @@ class PenyewaController extends Controller
 
     public function detail($id)
     {
-        $data = Transaction::with('property')->where('id', $id)->first();
-        if ($data) {
-            $result = [
-                'id' => $data->id,
-                'fullname_renter' => $data->fullname,
-                'phone_number' => $data->phone_number,
-                'email' => $data->email,
-                'date_of_birth' => Carbon::parse($data->date_of_birth)->translatedFormat('d F Y'),
-                'job' => $data->job,
-                'marriage' => $data->marriage,
+        $transaction = Transaction::with('property', 'user')->where('id', $id)->first();
 
-                'property_name' => $data->property[0]->nama,
-                'checkin' => Carbon::parse($data->checkin)->translatedFormat('d F Y'),
-                'gender' => $data->gender == 'female' ? 'Perempuan' : "Laki-laki",
-                'id_card' => asset("uploads/ktp-person/{$data->fullname}/{$data->id_card}"),
-            ];
-            return ResponseFormatter::success($result);
-        } else {
-            return ResponseFormatter::error('Data tidak ditemukan', 404);
-        }
+        if (!$transaction) return ResponseFormatter::error('Data tidak ditemukan', 404);
+
+        $renter = $transaction->user->first();
+        $property = $transaction->property->first();
+
+        $availableRules = RuleProperty::where('property_id', $id)->get();
+
+        $result = [
+            'id' => $transaction->id,
+            'fullname_renter' => $renter->fullname,
+            'phone_number' => $transaction->phone_number,
+            'email' => $renter->email,
+            'date_of_birth' => Carbon::parse($renter->date_of_birth)->translatedFormat('d F Y'),
+            'job' => $transaction->job,
+            'marriage' => $transaction->marriage,
+            'property_name' => $property->nama,
+            'checkin' => Carbon::parse($transaction->checkin)->translatedFormat('d F Y'),
+            'gender' => $transaction->gender == 'female' ? 'Perempuan' : "Laki-laki",
+            'id_card' => asset("uploads/ktp-person/{$transaction->fullname}/{$transaction->id_card}"),
+            'property_land_area' => $property->lebar_tanah,
+            'property_room_area' => $property->luas_kamar,
+            'rules' => $availableRules->map(function ($item) {
+                $rule = ListRules::where('id', $item->rule_id)->first();
+                return [
+                    'name'=> $rule->name,
+                ];
+            }),
+        ];
+
+        return ResponseFormatter::success($result);
     }
 }

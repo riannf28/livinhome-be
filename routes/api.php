@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
         'middleware' => ['auth', 'role:owner']
     ], function () {
         Route::post('upload-ktp/owner', [AuthOwnerController::class, 'upload_ktp']);
+        // Below route Might unused
         Route::post('upload-ktp-with-person/owner', [AuthOwnerController::class, 'upload_ktp_with_person']);
     });
 
@@ -58,7 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('', [ProfileOwnerController::class, 'index']);
         Route::post('update', [ProfileOwnerController::class, 'update']);
         Route::post('update-image', [ProfileOwnerController::class, 'update_image']);
-        Route::post('update-idCard', [ProfileOwnerController::class, 'update_id_card']);
+        Route::post('update-idCard', [ProfileOwnerController::class, 'update_id_card']); // TODO: file bug
     });
 
     Route::group([
@@ -74,15 +75,15 @@ Route::middleware('auth:sanctum')->group(function () {
         'prefix' => 'property',
         'middleware' => ['auth', 'role:owner']
     ], function () {
-        Route::post('register', [PropertyController::class, 'register_property']);
+        Route::post('register', [PropertyController::class, 'register_property']); // TODO: file bug
         Route::get('get-rules', [PropertyController::class, 'get_rules']);
         Route::get('get-facilities', [PropertyController::class, 'get_facilites']);
 
         // MANAJEMEN PROPERTY
-        Route::get('list-property', [PropertyController::class, 'list_property']);
-        Route::get('get-data-property/{id}', [PropertyController::class, 'get_property']);
-        Route::post('update-property', [PropertyController::class, 'update']);
-        Route::post('upload-image', [PropertyController::class, 'upload_image']);
+        Route::get('list-property', [PropertyController::class, 'list_property']); // TODO: file bug
+        Route::get('get-data-property/{id}', [PropertyController::class, 'get_property']); // TODO: file bug
+        Route::post('update-property', [PropertyController::class, 'update']); // TODO: file bug (?)
+        Route::post('upload-image', [PropertyController::class, 'upload_image']); // TODO: file bug
     });
 
     Route::group([
@@ -90,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
         'middleware' => ['auth', 'role:owner']
     ], function () {
         Route::get('list', [PengajuanSewaController::class, 'list_pengajuan']);
-        Route::get('detail/{id}', [PengajuanSewaController::class, 'pengajuan_detail']);
+        Route::get('detail/{id}', [PengajuanSewaController::class, 'pengajuan_detail']); // TODO: file bug
         Route::post('accept', [PengajuanSewaController::class, 'accept_pengajuan']);
         Route::post('decline', [PengajuanSewaController::class, 'decline_pengajuan']);
     });
@@ -132,12 +133,12 @@ Route::middleware('auth:sanctum')->group(function () {
         'prefix' => 'transaction',
         'middleware' => ['auth', 'role:renter']
     ], function () {
-        Route::get('get-data-property/{property_id}', [TransactionController::class, 'index']);
-        Route::get('detail/{id_transaction}', [TransactionController::class, 'detail_transaction']);
-        Route::post('store-transaction-data', [TransactionController::class, 'store_transaction']);
-        Route::post('payment', [TransactionController::class, 'payment']);
+        Route::get('get-data-property/{property_id}', [TransactionController::class, 'index']); // TODO: file bug
+        Route::get('detail/{id_transaction}', [TransactionController::class, 'detail_transaction']); // TODO: file bug
+        Route::post('store-transaction-data', [TransactionController::class, 'store_transaction']); // TODO: file bug
+        Route::post('payment', [TransactionController::class, 'payment']); // TODO: file bug
         Route::post('cancel-transaction', [TransactionController::class, 'cancel']);
-        Route::post('proof-of-payment', [TransactionController::class, 'proof_of_payment']);
+        Route::post('proof-of-payment', [TransactionController::class, 'proof_of_payment']); // TODO: file bug
     });
 
     Route::group([

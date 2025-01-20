@@ -19,28 +19,28 @@ class AdminController extends Controller
             $total_kontrakan_user = Transaction::whereHas('property', function ($query) {
                 $query->where('kategori', 'kontrakan');
             })
-                ->where('payment_date', '!=', null)
+                ->where('status', '=', true)
                 ->count();
 
             $total_kost = Property::where('kategori', 'kost')->count();
             $total_kost_user = Transaction::whereHas('property', function ($query) {
                 $query->where('kategori', 'kost');
             })
-                ->where('payment_date', '!=', null)
+                ->where('status', '=', true)
                 ->count();
 
             $total_apartment = Property::where('kategori', 'apartment')->count();
             $total_apartment_user = Transaction::whereHas('property', function ($query) {
                 $query->where('kategori', 'apartment');
             })
-                ->where('payment_date', '!=', null)
+                ->where('status', '=', true)
                 ->count();
 
             // $total_new_transaction = Transaction::where('checkin', '>=', Carbon::now()->subWeek())->count();
             $total_new_transaction = Transaction::where('checkin', '>=', Carbon::now()->subYears(50))
-                ->where('payment_date', '!=', null)
+                ->where('status', '=', true)
                 ->count();
-            $total_transaction = Transaction::where('payment_date', '!=', null)
+            $total_transaction = Transaction::where('status', '=', true)
                 ->count();
 
             $result = array();

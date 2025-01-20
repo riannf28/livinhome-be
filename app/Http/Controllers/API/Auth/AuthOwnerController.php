@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Auth;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Utils\StoragePath;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +56,7 @@ class AuthOwnerController extends Controller
 
 
             $tokenResult = $user->createToken('authToken')->plainTextToken;
-            $photo_profile = asset("uploads/photo-profile/{$user->fullname}/{$user->photo_profile}");
+            $photo_profile = asset("storage/uploads/photo-profile/{$user->id}/{$user->photo_profile}");
 
 
             return ResponseFormatter::success([$user->roles, $photo_profile], 'Login Successfully', $tokenResult);
@@ -134,17 +135,21 @@ class AuthOwnerController extends Controller
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
-        $image = $request->file('image');
-        $image_name = time() . '-' . $request->fullname . '.' . $image->getClientOriginalExtension();
+        $ktp_image = $request->file('image');
+        $ktp_image_extension = $ktp_image->extension();
         try {
             $user = Auth::user();
-            Storage::putFileAs("public/uploads/ktp/{$user->fullname}", $image, $image_name);
-            $user->id_card = $image_name;
+            $profile_path = StoragePath::userProfilePath($user->id);
+            $ktp_path = $ktp_image->storeAs($profile_path, "ktp.$ktp_image_extension", 'public');
+//            Storage::putFileAs("public/uploads/ktp/{$user->fullname}", $image, $image_name);
+
+            $user->id_card = $ktp_path;
             $user->save();
 
-            $link_image = asset("uploads/ktp/{$user->fullname}/{$image_name}");
+            $ktp_image_link = Storage::url($ktp_path);
+//            $link_image = asset("uploads/ktp/{$user->fullname}/{$image_name}");
 
-            return ResponseFormatter::success($link_image, 'Upload Successfully');
+            return ResponseFormatter::success($ktp_image_link, 'Upload Successfully');
         } catch (Exception $error) {
             return ResponseFormatter::success($error->getMessage(), 'Error');
         }
@@ -164,12 +169,18 @@ class AuthOwnerController extends Controller
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
-        $image = $request->file('image');
-        $image_name = time() . '-' . $request->fullname . '.' . $image->getClientOriginalExtension();
+        $ktp_person_img = $request->file('image');
+        $ktp_person_img_extension = $ktp_person_img->extension();
+
         try {
             $user = Auth::user();
-            Storage::putFileAs("public/uploads/ktp-person/{$user->fullname}", $image, $image_name);
-            $user->id_card_with_person = $image_name;
+            $profile_path = StoragePath::userProfilePath($user->id);
+//            $image->store('uploads/ktp-person/' . $user->fullname, 'public');
+
+            $ktp_person_path = $ktp_person_img->storeAs($profile_path, "ktp-with-person.$ktp_person_img_extension", 'public');
+
+            // Storage::putFileAs("public/uploads/ktp-person/{$user->fullname}", $image, $image_name);
+            $user->id_card_with_person = $ktp_person_path;
             $user->save();
 
             return ResponseFormatter::success(null, 'Upload Successfully');

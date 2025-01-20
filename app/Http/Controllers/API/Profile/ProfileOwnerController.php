@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Profile;
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
+use App\Utils\StoragePath;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,19 +17,20 @@ class ProfileOwnerController extends Controller
     public function index()
     {
         try {
-            $data = Auth::user();
-            $property = Property::where('user_id', $data->id)->first();
+            $user = Auth::user();
+            $property = Property::where('user_id', $user->id)->first();
             if (!empty($property)) {
-                $data->bank = $property->bank;
-                $data->rekening = $property->rekening;
+                $user->bank = $property->bank;
+                $user->rekening = $property->rekening;
             } else {
-                $data->bank = null;
-                $data->rekening = null;
+                $user->bank = null;
+                $user->rekening = null;
             }
-            $data->photo_profile = asset("uploads/photo-profile/{$data->fullname}/" . $data->photo_profile);
-            $data->id_card = asset("uploads/ktp/{$data->fullname}/" . $data->id_card);
 
-            return ResponseFormatter::success($data);
+            $user->id_card = Storage::url($user->id_card);
+            $user->photo_profile = Storage::url($user->photo_profile);
+
+            return ResponseFormatter::success($user);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error);
         }
@@ -102,44 +104,32 @@ class ProfileOwnerController extends Controller
 
     public function update_image(Request $request)
     {
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'image' => [
-                    'required',
-                    'string',
-                    function ($attribute, $value, $fail) {
-                        $this->validateImage($attribute, $value, $fail);
-                    },
-                ],
-            ],
-            [
-                'image.required' => 'Foto harus diunggah.',
-                'image.string' => 'Format foto tidak valid.',
-            ]
-        );
+        $validator = Validator::make($request->all(), [
+            'image' => ['file', 'required', 'mimes:jpeg,jpg,png']
+        ], [
+            'image.required' => 'Foto profil harus diunggah',
+            'image.mimes' => 'Foto profil hanya menerima gambar dengan format .jpeg, .jpg atau .png'
+        ]);
 
         if ($validator->fails()) {
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
-        $data = Auth::user();
-        if ($request->has('image')) {
-            // photo-profile/{$user->fullname}/{$user->photo_profile}
-            // $path_image = "/public/uploads/ktp/{$data->fullname}/" . $data->id_card;
-            $path_image = "/public/uploads/photo-profile/{$data->fullname}/" . $data->photo_profile;
-            $image = $request->input('image');
-            $image_name = time() . '-profile-' . $request->name;
-            $path = "public/uploads/photo-profile/{$data->fullname}/" . $image_name;
-            $extension = $this->check_image($image, $path);
-            $data->photo_profile = $image_name . '.' . $extension;
-            $data->save();
-            Storage::delete($path_image);
-        }
+        $user = Auth::user();
 
-        $path_image = asset("uploads/photo-profile/{$data->fullname}/{$data->photo_profile}");
+        $profile_img = $request->file('image');
+        $profile_img_extension = $profile_img->extension();
 
-        return ResponseFormatter::success($path_image);
+        $profile_path = StoragePath::userProfilePath($user->id);
+
+        $profile_img_path = $profile_img->storeAs($profile_path, "photo-profile.$profile_img_extension", 'public');
+
+        $user->photo_profile = $profile_img_path;
+        $user->save();
+
+        $photo_profile_url = Storage::url($user->photo_profile);
+
+        return ResponseFormatter::success($photo_profile_url);
     }
 
     public function update_id_card(Request $request)
@@ -165,23 +155,21 @@ class ProfileOwnerController extends Controller
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
-        $data = Auth::user();
-        if ($request->has('id_card')) {
-            // photo-profile/{$user->fullname}/{$user->photo_profile}
-            // $path_image = "/public/uploads/ktp/{$data->fullname}/" . $data->id_card;
-            $path_image = "/public/uploads/ktp/{$data->fullname}/" . $data->id_card;
-            $image = $request->input('id_card');
-            $image_name = time() . '-idCard-' . $request->name;
-            $path = "public/uploads/ktp/{$data->fullname}/" . $image_name;
-            $extension = $this->check_image($image, $path);
-            $data->id_card = $image_name . '.' . $extension;
-            $data->save();
-            Storage::delete($path_image);
-        }
+        $user = Auth::user();
 
-        $path_image = asset("uploads/ktp/{$data->fullname}/{$data->id_card}");
+        $ktp_img = $request->file('id_card');
+        $ktp_img_extension = $ktp_img->extension();
 
-        return ResponseFormatter::success($path_image);
+        $profile_path = StoragePath::userProfilePath($user->id);
+
+        $ktp_img_path = $ktp_img->storeAs($profile_path, "ktp.$ktp_img_extension", 'public');
+
+        $user->id_card = $ktp_img_path;
+        $user->save();
+
+        $ktp_url = Storage::url($ktp_img_path);
+
+        return ResponseFormatter::success($ktp_url);
     }
 
     public function validateImage($attribute, $value, $fail, $status = null)

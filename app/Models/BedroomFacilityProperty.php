@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Utils\StoragePath;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class BedroomFacilityProperty extends Model
 {
@@ -18,6 +20,11 @@ class BedroomFacilityProperty extends Model
 
     public function property()
     {
-        return $this->hasMany(Property::class, 'id', 'property_id');
+        return $this->belongsTo(Property::class, 'id', 'property_id');
+    }
+
+    public function image_url() {
+        $basePath = StoragePath::propertyPath($this->property_id);
+        return isset($this->image) ? Storage::url("$basePath/kamar-tidur/$this->image") : null;
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\Transaction\AdditionalFeatures;
 use App\Models\Transaction\Transaction;
+use App\Utils\StoragePath;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -52,15 +53,15 @@ class TransactionController extends Controller
 
     public function detail_transaction($id_transaction)
     {
-        $data = Transaction::where('id', (int) $id_transaction)->first();
-        $property = Property::where('id', $data->property_id)->first();
-        $data['property']['name'] = $property->nama;
-        $data['property']['bank'] = $property->bank;
-        $data['property']['rekening'] = $property->rekening;
-        unset($data['property'][0]);
+        $transaction = Transaction::where('id', (int) $id_transaction)->first();
+        $property = Property::where('id', $transaction->property_id)->first();
+//        $transaction['property']['name'] = $property->nama;
+//        $transaction['property']['bank'] = $property->bank;
+//        $transaction['property']['rekening'] = $property->rekening;
+//        unset($transaction['property'][0]);
 
-        if (empty($data)) {
-            return ResponseFormatter::success(null, 'Data Transaction tidak ada');
+        if (empty($transaction)) {
+            return ResponseFormatter::error(null, 'Data Transaction tidak ada', 404);
         }
         $tomorrow = Carbon::now()->addDay()->locale('id');
         $deadline = $tomorrow->isoFormat('dddd, DD MMMM YYYY HH.mm') . ' WIB';
@@ -69,10 +70,19 @@ class TransactionController extends Controller
         $data_result = [
             'deadline' => $deadline,
             'remaining_time' => $remaining_time,
-            'data' => $data
+            'data' => $transaction
         ];
 
-        return ResponseFormatter::success($data_result);
+        $result = [
+            'deadline' => [
+                'date' => $deadline,
+                'remaining_time' => $remaining_time
+            ],
+            'transaction' => $transaction,
+            'property' => $property,
+        ];
+
+        return ResponseFormatter::success($result);
     }
 
     public function store_transaction(Request $request)
@@ -105,8 +115,8 @@ class TransactionController extends Controller
             // 'marriage.in' => 'Status Kawin hanya bisa diisi kawin/belum kawin.',
             'number_of_renters.required' => 'Jumlah penyewa wajib diisi.',
             'school_name.required' => 'Nama sekolah wajib diisi.',
-            'id_card.required' => 'KTP wajib diunggah.',
             'checkin.required' => 'Tanggal Masuk harus diisi.',
+            'id_card.required' => 'KTP wajib diunggah.',
             'id_card.image' => 'KTP harus berupa gambar.',
             'id_card.mimes' => 'KTP harus dalam format JPEG, PNG, atau JPG.',
         ]);
@@ -116,19 +126,33 @@ class TransactionController extends Controller
         }
 
         try {
-            if ($request->hasFile('id_card')) {
-                $image = $request->file('id_card');
-                $image_name = time() . '-' . $request->fullname . '.' . $image->getClientOriginalExtension();
-                Storage::putFileAs("public/uploads/transaction/ktp/{$request->fullname}", $image, $image_name);
-            }
+
+
+
             $transaction = new Transaction();
+
             $transaction->fill($request->all());
+            $transaction->id_card = '';
             $transaction->user_id = auth()->user()->id;
             $transaction->booking_code = 'LIVIN-' . Str::random(3) . now()->format('dmYHis');
-            $transaction->id_card = $image_name;
             $transaction->checkin = ResponseFormatter::timestampToDate($request->checkin);
             $transaction->status = null;
+
             $transaction->save();
+
+            //            if ($request->hasFile('id_card')) {
+//                $image = $request->file('id_card');
+//                $image_name = time() . '-' . $request->fullname . '.' . $image->getClientOriginalExtension();
+//                Storage::putFileAs("public/uploads/transaction/ktp/{$request->fullname}", $image, $image_name);
+//            }
+
+            $transaction_path = StoragePath::transactionPath($transaction->id);
+
+            $id_card_img = $request->file('id_card');
+            $id_card_extension = $id_card_img->extension();
+            $id_card_path = $id_card_img->storeAs($transaction_path, "id_card.$id_card_extension", 'public');
+
+            $transaction->update([ 'id_card' => $id_card_path ]);
 
             if ($request->has('list_additional_feature_id')) {
                 $total_additionl_features = count($request->list_additional_feature_id);
@@ -175,14 +199,18 @@ class TransactionController extends Controller
             ]
         );
 
+        if ($validator->fails()) {
+            return ResponseFormatter::error(null, $validator->messages()->all(), 400);
+        }
+
         try {
             $property = Transaction::where('id', $request->transaction_id)->first();
-            if ($property->status == false) {
-                return ResponseFormatter::error(null, 'Pengajuan ditolak');
+            if ($property->status === false) {
+                return ResponseFormatter::error(null, 'Pengajuan ditolak', 409);
             }
 
-            if ($property->status == null) {
-                return ResponseFormatter::error(null, 'Pengajuan belum di proses');
+            if ($property->status === null) {
+                return ResponseFormatter::error(null, 'Pengajuan belum di proses', 412);
             }
 
             $property->bank = $request->bank;
@@ -218,7 +246,7 @@ class TransactionController extends Controller
         try {
             $data = Transaction::find($request->transaction_id);
             if (empty($data)) {
-                return ResponseFormatter::error(null, 'Pengajuan tidak ditemukan');
+                return ResponseFormatter::error(null, 'Pengajuan tidak ditemukan', 404);
             }
             // return response()->json($data);
             // $data->is_cancel = true;
@@ -250,22 +278,23 @@ class TransactionController extends Controller
             return ResponseFormatter::error(null, $validator->messages()->all(), 400);
         }
 
-        try {
-            $name_person_transaction = Transaction::where('id', $request->transaction_id)->pluck('fullname');
-            if (!empty($name_person_transaction[0])) {
-                $name_person_transaction = $name_person_transaction[0];
-                $image = $request->file('proof_of_payment');
-                $image_name = time() . '-' . $name_person_transaction . '.' . $image->getClientOriginalExtension();
-                Storage::putFileAs("public/uploads/transaction/proof-of-payment/{$name_person_transaction}", $image, $image_name);
-                $data = Transaction::findOrFail($request->transaction_id);
-                $data->proof_of_payment = $image_name;
-                $data->save();
+        $transaction = Transaction::where('id', $request->get('transaction_id'))->first();
 
-                return ResponseFormatter::success();
-            }
-            return ResponseFormatter::error(null, 'Data pengajuan tidak ditemukan.');
-        } catch (Exception $error) {
-            return ResponseFormatter::success($error->getMessage(), 'Error');
+        if (empty($transaction)) {
+            return ResponseFormatter::error(null, 'Data pengajuan tidak ditemukan.', 404);
         }
+
+        $proof_payment_img = $request->file('proof_of_payment');
+        $proof_payment_extension = $proof_payment_img->extension();
+
+        $transaction_path = StoragePath::transactionPath($transaction->id);
+
+        $proof_payment_path = $proof_payment_img->storeAs($transaction_path, "proof_of_payment.$proof_payment_extension", 'public');
+
+        $transaction->proof_of_payment = $proof_payment_path;
+
+        $transaction->save();
+
+        return ResponseFormatter::success();
     }
 }

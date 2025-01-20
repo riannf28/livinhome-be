@@ -24,6 +24,6 @@ class ListAdditionalFeatures extends Model
 
     public static function link_location_icon($icon)
     {
-        return asset("uploads/image/{$icon}");
+        return asset("storage/uploads/image/{$icon}");
     }
 }

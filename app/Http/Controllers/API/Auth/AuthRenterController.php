@@ -42,7 +42,8 @@ class AuthRenterController extends Controller
             }
 
             $tokenResult = $user->createToken('authToken')->plainTextToken;
-            $photo_profile = asset("uploads/photo-profile/{$user->fullname}/{$user->photo_profile}");
+//            $photo_profile = asset("storage/uploads/photo-profile/$user->id/$user->photo_profile");
+            $photo_profile = asset('storage/uploads/photo-profile/1/1734489791-renter.jpg');
         } catch (Exception $error) {
             return ResponseFormatter::success($error->getMessage(), 'Error');
         }

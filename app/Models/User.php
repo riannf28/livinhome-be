@@ -11,6 +11,7 @@ use App\Models\Transaction\Transaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -60,6 +61,14 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function photo_profile_url() {
+        return isset($this->photo_profile) ? Storage::url($this->photo_profile) : null;
+    }
+
+    public function id_card_url() {
+        return isset($this->id_card) ? Storage::url($this->id_card) : null;
+    }
 
     public function property()
     {

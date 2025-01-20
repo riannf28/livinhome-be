@@ -51,8 +51,8 @@ class SurveyController extends Controller
 
         try {
             $data = Survey::where('id', $request->survey_id)->first();
-            if ($data->is_cancel == true) {
-                return ResponseFormatter::success(null, 'Survey Telah Dihapus');
+            if ($data->is_cancel) {
+                return ResponseFormatter::success(null, 'Survey Telah Dibatalkan');
             }
             $data->status = true;
             $data->save();
@@ -78,8 +78,8 @@ class SurveyController extends Controller
 
         try {
             $data = Survey::where('id', $request->survey_id)->first();
-            if ($data->is_cancel == false) {
-                return ResponseFormatter::success(null, 'Survey Telah Dihapus');
+            if ($data->is_cancel) {
+                return ResponseFormatter::success(null, 'Survey Telah Dibatalkan');
             }
             $data->status = false;
             $data->save();

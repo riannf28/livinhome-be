@@ -59,22 +59,22 @@ class Property extends Model
 
     public function rule_property()
     {
-        return $this->belongsTo(RuleProperty::class);
+        return $this->hasOne(RuleProperty::class);
     }
 
     public function bedroom_facility()
     {
-        return $this->belongsTo(BedroomFacilityProperty::class);
+        return $this->hasOne(BedroomFacilityProperty::class);
     }
 
     public function image_property()
     {
-        return $this->belongsTo(ImageBuildProperty::class);
+        return $this->hasOne(ImageBuildProperty::class);
     }
 
     public function image_bathroom()
     {
-        return $this->belongsTo(ImageBathroomProperty::class);
+        return $this->hasOne(ImageBathroomProperty::class);
     }
 
     public function facility_property()

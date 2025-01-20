@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Transaction extends Model
@@ -67,4 +68,13 @@ class Transaction extends Model
 
         return $code;
     }
+
+    public function id_card_url() {
+        return Storage::url($this->id_card);
+    }
+
+    public function proof_of_payment_url() {
+        return Storage::url($this->proof_of_payment);
+    }
+
 }

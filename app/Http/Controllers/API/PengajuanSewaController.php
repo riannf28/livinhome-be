@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class PengajuanSewaController extends Controller
@@ -48,81 +49,73 @@ class PengajuanSewaController extends Controller
     {
         try {
             $user = Auth::user();
-            $data = Transaction::where('id', $id)
-                ->with('property')
-                ->whereHas('property', function ($query) use ($user) {
-                    $query->where('user_id', $user->id);
-                })
-                // ->where('status', null)
-                ->first();
+            $transaction = Transaction::where('id', $id)->first();
 
-            if (!empty($data)) {
-
-                // dd($data->property[0]->user[0]->fullname, ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan'));
-                if (!empty(ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan')[0])) {
-
-                    $path = "uploads/properties/{$data->property[0]->user[0]->fullname}/{$data->property[0]->nama}/" . ImageBuildProperty::where('property_id', $data->property[0]->id)->pluck('bangunan_depan')[0];
-                } else {
-                    $path = null;
-                }
-                $data->property[0]['image'] = asset($path);
-                unset($data->property[0]->user);
-
-                $data['total_price'] = null;
-
-                $data->id_card = asset("uploads/transaction/ktp/{$data->fullname}/{$data->id_card}");
-                if ($data->duration == 1) {
-                    $data->rent_end = $this->convertDateToTimestamp(Carbon::parse($data->checkin)->addMonth(1));
-                    $data->rent_duration = '1 Bulan';
-                    $data['total_price'] += $data->property[0]->harga_sewa_1_bulan;
-                }
-                if ($data->duration == 3) {
-                    $data->rent_end = $this->convertDateToTimestamp(Carbon::parse($data->checkin)->addMonth(3));
-                    $data->rent_duration = '3 Bulan';
-                    $data['total_price'] += $data->property[0]->harga_sewa_3_bulan;
-                }
-                if ($data->duration == 12) {
-                    $data->rent_end = $this->convertDateToTimestamp(Carbon::parse($data->checkin)->addMonth(12));
-                    $data->rent_duration = '1 Tahun';
-                    $data['total_price'] += $data->property[0]->harga_sewa_tahun;
-                }
-
-                // OVVERIDE
-                $data['total_price'] = $data->property[0]->harga_sewa_1_bulan * $data->duration;
-
-                $data->checkout = $this->convertDateToTimestamp(Carbon::parse($data->checkin)->addMonth($data->duration));
-                $data->checkin = $this->convertDateToTimestamp($data->checkin);
-                if (empty($data->proof_of_payment)) {
-                    $data->proof_of_payment = null;
-                } else {
-                    $data->proof_of_payment = asset("/uploads/transaction/proof-of-payment/{$data->fullname}/{$data->proof_of_payment}");
-                }
-                $deadline = Carbon::parse($data->created_at)->addHours(env('MAX_PENGAJUAN_HOUR'))->addDays(env('MAX_PENGAJUAN_DAY'));
-
-                if (now()->lt($deadline)) {
-                    $data->deadline = $deadline->locale('id')->isoFormat('D MMMM YYYY, HH:mm');
-                } else {
-                    $data->deadline = 'Sudah Terlambat';
-                }
-
-                $additional_features = AdditionalFeatures::where('transaction_id', $data->id)->get();
-                $additional_features_array = [];
-
-                foreach ($additional_features as $item) {
-                    $list_features = ListAdditionalFeatures::where('id', $item->list_additional_feature_id)->get();
-
-                    foreach ($list_features as $feature) {
-                        if (!str_contains($feature->icon, 'http')) {
-                            $feature->icon = ListAdditionalFeatures::link_location_icon($feature->icon);
-                            $data['total_price'] += $feature->harga;
-                        }
-                        $additional_features_array[] = $feature;
-                    }
-                }
-                $data['additional_features'] = $additional_features_array;
-                return ResponseFormatter::success($data);
+            if (empty($transaction)) {
+                return ResponseFormatter::error(null, 'Transaksi tidak ditemukan', 404);
             }
-            return ResponseFormatter::success();
+
+            $image_build_property = ImageBuildProperty::where('property_id', $transaction->property_id)->first();
+
+            $transaction->property[0]['image'] = $image_build_property->image_bangunan_depan_url();
+            unset($transaction->property[0]->user);
+
+            $transaction['total_price'] = null;
+
+            $transaction->id_card = $transaction->id_card_url();
+
+
+            if ($transaction->duration == 1) {
+                $transaction->rent_end = $this->convertDateToTimestamp(Carbon::parse($transaction->checkin)->addMonth(1));
+                $transaction->rent_duration = '1 Bulan';
+                $transaction['total_price'] += $transaction->property[0]->harga_sewa_1_bulan;
+            }
+            if ($transaction->duration == 3) {
+                $transaction->rent_end = $this->convertDateToTimestamp(Carbon::parse($transaction->checkin)->addMonth(3));
+                $transaction->rent_duration = '3 Bulan';
+                $transaction['total_price'] += $transaction->property[0]->harga_sewa_3_bulan;
+            }
+            if ($transaction->duration == 12) {
+                $transaction->rent_end = $this->convertDateToTimestamp(Carbon::parse($transaction->checkin)->addMonth(12));
+                $transaction->rent_duration = '1 Tahun';
+                $transaction['total_price'] += $transaction->property[0]->harga_sewa_tahun;
+            }
+
+            $transaction['total_price'] = $transaction->property[0]->harga_sewa_1_bulan * $transaction->duration;
+
+            $transaction->checkout = $this->convertDateToTimestamp(Carbon::parse($transaction->checkin)->addMonth($transaction->duration));
+            $transaction->checkin = $this->convertDateToTimestamp($transaction->checkin);
+
+            if (empty($transaction->proof_of_payment)) {
+                $transaction->proof_of_payment = null;
+            } else {
+                $transaction->proof_of_payment = $transaction->proof_of_payment_url();
+            }
+
+            $deadline = Carbon::parse($transaction->created_at)->addHours(env('MAX_PENGAJUAN_HOUR'))->addDays(env('MAX_PENGAJUAN_DAY'));
+
+            if (now()->lt($deadline)) {
+                $transaction->deadline = $deadline->locale('id')->isoFormat('D MMMM YYYY, HH:mm');
+            } else {
+                $transaction->deadline = 'Sudah Terlambat';
+            }
+
+            $additional_features = AdditionalFeatures::where('transaction_id', $transaction->id)->get();
+            $additional_features_array = [];
+
+            foreach ($additional_features as $item) {
+                $list_features = ListAdditionalFeatures::where('id', $item->list_additional_feature_id)->get();
+
+                foreach ($list_features as $feature) {
+                    if (!str_contains($feature->icon, 'http')) {
+                        $feature->icon = ListAdditionalFeatures::link_location_icon($feature->icon);
+                        $transaction['total_price'] += $feature->harga;
+                    }
+                    $additional_features_array[] = $feature;
+                }
+            }
+            $transaction['additional_features'] = $additional_features_array;
+            return ResponseFormatter::success($transaction);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }
@@ -214,13 +207,13 @@ class PengajuanSewaController extends Controller
         }
 
         try {
-            $data = Transaction::where('id', $request->transaction_id)->first();
-            if (!empty($data)) {
+            $transaction = Transaction::where('id', $request->transaction_id)->first();
+            if (!empty($transaction)) {
 
-                // $data->status = false;
-                // $data->save();
-                $data->delete();
-                return ResponseFormatter::success($data);
+                $transaction->status = false;
+                $transaction->save();
+
+                return ResponseFormatter::success($transaction);
             }
             return ResponseFormatter::success(null, 'Data Not Found');
         } catch (Exception $error) {

@@ -14,6 +14,7 @@ use App\Models\Property;
 use App\Models\RatingProperty;
 use App\Models\RuleProperty;
 use App\Models\Transaction\Transaction;
+use App\Utils\StoragePath;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -158,22 +159,22 @@ class PropertyController extends Controller
             // $request->kasur == 'true' ? true : false;
 
             // return ResponseFormatter::success($request->all());
-            $data = new Property();
-            $data->fill($request->all());
-            $data->tanggal_dibuat = ResponseFormatter::timestampToDate($request->tanggal_dibuat);
-            $data->tanggal_mulai_sewa = ResponseFormatter::timestampToDate($request->tanggal_mulai_sewa);
-            $data->user_id = Auth::user()->id;
-            $data->save();
+            $property = new Property();
+            $property->fill($request->all());
+            $property->tanggal_dibuat = ResponseFormatter::timestampToDate($request->tanggal_dibuat);
+            $property->tanggal_mulai_sewa = ResponseFormatter::timestampToDate($request->tanggal_mulai_sewa);
+            $property->user_id = Auth::user()->id;
+            $property->save();
 
             // $bedroom_facility = new BedroomFacilityProperty();
 
             $image_property = new ImageBuildProperty();
-            $image_property->property_id = $data->id;
+            $image_property->property_id = $property->id;
 
             if ($request->has('foto_rumah_depan')) {
                 $image_rumah_depan = $request->input('foto_rumah_depan');
                 $image_rumah_depan_name = time() . '-' . $request->name . '-rumah-depan';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_depan_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_depan_name";
                 $extension = $this->check_image($image_rumah_depan, $path);
                 $image_property->bangunan_depan = $image_rumah_depan_name . '.' . $extension;
             }
@@ -181,7 +182,8 @@ class PropertyController extends Controller
             if ($request->has('foto_rumah_jalan')) {
                 $image_rumah_jalan = $request->input('foto_rumah_jalan');
                 $image_rumah_jalan_name = time() . '-' . $request->name . '-rumah-jalan';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_jalan_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/" . $image_rumah_jalan_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_jalan_name";
                 $extension = $this->check_image($image_rumah_jalan, $path);
                 $image_property->depan = $image_rumah_jalan_name . '.' . $extension;
             }
@@ -189,7 +191,8 @@ class PropertyController extends Controller
             if ($request->has('foto_rumah_dalam')) {
                 $image_rumah_dalam = $request->input('foto_rumah_dalam');
                 $image_rumah_dalam_name = time() . '-' . $request->name . '-rumah-dalam';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_dalam_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/" . $image_rumah_dalam_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_dalam_name";
                 $extension = $this->check_image($image_rumah_dalam, $path);
                 $image_property->dalam = $image_rumah_dalam_name . '.' . $extension;
             }
@@ -201,10 +204,11 @@ class PropertyController extends Controller
                 for ($i = 0; $i < $image_bedroom_count; $i++) {
                     $image = $request->input('foto_kamar_tidur')[$i];
                     $image_name = time() . '-' . $request->name . '-kamar-tidur';
-                    $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-tidur/" . $image_name;
+//                    $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-tidur/" . $image_name;
+                    $path = StoragePath::propertyPath($property->id) . "/kamar-tidur/$image_name";
                     $extension = $this->check_image($image, $path);
                     $image_bedroom = new BedroomFacilityProperty();
-                    $image_bedroom->property_id = $data->id;
+                    $image_bedroom->property_id = $property->id;
                     $image_bedroom->image = $image_name . '.' . $extension;
                     $image_bedroom->save();
                 }
@@ -213,10 +217,11 @@ class PropertyController extends Controller
             if ($request->has('foto_kamar_mandi')) {
                 $image = $request->input('foto_kamar_mandi');
                 $image_name = time() . '-' . $request->name . '-kamar-mandi';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/" . $image_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-mandi/" . $image_name;
+                $path = StoragePath::propertyPath($property->id) . "/kamar-mandi/$image_name";
                 $extension = $this->check_image($image, $path);
                 $image_bathroom = new ImageBathroomProperty();
-                $image_bathroom->property_id = $data->id;
+                $image_bathroom->property_id = $property->id;
                 $image_bathroom->image = $image_name . '.' . $extension;
                 $image_bathroom->save();
             }
@@ -225,7 +230,7 @@ class PropertyController extends Controller
                 $other_facility_count = count($request->fasilitas_lain);
                 for ($i = 0; $i < $other_facility_count; $i++) {
                     $other_facility = new FacilityProperty();
-                    $other_facility->property_id = $data->id;
+                    $other_facility->property_id = $property->id;
                     $other_facility->facility_id = $request->fasilitas_lain[$i];
                     $other_facility->save();
                 }
@@ -236,13 +241,13 @@ class PropertyController extends Controller
                 $rules_property = count($request->rules);
                 for ($i = 0; $i < $rules_property; $i++) {
                     $rule_property = new RuleProperty();
-                    $rule_property->property_id = $data->id;
+                    $rule_property->property_id = $property->id;
                     $rule_property->rule_id = $request->rules[$i];
                     $rule_property->save();
                 }
             }
 
-            return ResponseFormatter::success($data);
+            return ResponseFormatter::success($property);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }
@@ -251,14 +256,19 @@ class PropertyController extends Controller
     public function data_detail_property($id)
     {
         try {
-            $data = Property::where('id', $id)->with('user')->first();
+            $property = Property::where('id', $id)->with('user')->first();
             $images = array();
 
             $image_property = ImageBuildProperty::where('property_id', $id)->get();
             foreach ($image_property as $item) {
-                $path_bangunan_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->bangunan_depan}");
-                $path_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->depan}");
-                $path_dalam = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->dalam}");
+//                $path_bangunan_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->bangunan_depan}");
+//                $path_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->depan}");
+//                $path_dalam = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->dalam}");
+
+                $path_bangunan_depan = Storage::url(StoragePath::propertyPath($property->id) . "/$item->bangunan_depan");
+                $path_depan = Storage::url(StoragePath::propertyPath($property->id) . "/$item->depan");
+                $path_dalam = Storage::url(StoragePath::propertyPath($property->id) . "/$item->dalam");
+
                 array_push($images, $path_bangunan_depan);
                 array_push($images, $path_depan);
                 array_push($images, $path_dalam);
@@ -266,22 +276,24 @@ class PropertyController extends Controller
 
             $image_bedroom = BedroomFacilityProperty::where('id', $id)->get();
             foreach ($image_bedroom as $item) {
-                $path = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/{$item->image}");
+//                $path = asset("uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-mandi/{$item->image}");
+                $path = Storage::url(StoragePath::propertyPath($property->id) . "/kamar-tidur/$item->image");
                 array_push($images, $path);
             }
 
             $image_bathroom = ImageBathroomProperty::where('id', $id)->get();
             foreach ($image_bedroom as $item) {
-                $path = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/{$item->image}");
+//                $path = asset("uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-mandi/{$item->image}");
+                $path = Storage::url(StoragePath::propertyPath($property->id) . "/kamar-mandi/$item->image");
                 array_push($images, $path);
             }
 
-            $data->image = $images;
+            $property->image = $images;
 
-            $data->transaction_success = Transaction::where('property_id', $id)
+            $property->transaction_success = Transaction::where('property_id', $id)
                 ->where('status', true)
                 ->count();
-            $data->user[0]->pemilik_property = Property::where('user_id', $data->user_id)->count();
+            $property->user[0]->pemilik_property = Property::where('user_id', $property->user_id)->count();
 
             $rules_data = RuleProperty::where('property_id', $id)->get();
             $rules = array();
@@ -296,10 +308,10 @@ class PropertyController extends Controller
 
                 array_push($rules, $list_rule_array);
             }
-            $data->rules = $rules;
+            $property->rules = $rules;
 
 
-            return $data;
+            return $property;
         } catch (Exception $error) {
             return $error->getMessage();
         }
@@ -350,21 +362,29 @@ class PropertyController extends Controller
     {
         try {
             $user = Auth::user();
+
             $count_transaction = Transaction::whereHas('property', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })->count();
+
             $user->total_property = Property::where('user_id', $user->id)->count();
             $user->total_transaction = $count_transaction;
-            $data = Property::where('user_id', $user->id)->get();
-            foreach ($data as $item) {
-                $item->rating = RatingProperty::where('user_id', $user->id)->where('property_id', $item->id)->avg('rating');
-                $image_build = ImageBuildProperty::where('property_id', $item->id)->pluck('bangunan_depan');
-                $item->image = !empty($image_build[0]) ? asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/{$image_build[0]}") : null;
+
+            $properties = Property::where('user_id', $user->id)->get();
+
+            foreach ($properties as $property) {
+                $property->rating = RatingProperty::where('user_id', $user->id)->where('property_id', $property->id)->avg('rating');
+
+                $image_build = ImageBuildProperty::where('property_id', $property->id)->pluck('bangunan_depan');
+
+//                $property->image = !empty($image_build[0]) ? asset("uploads/properties/{$property->user[0]->fullname}/{$property->nama}/{$image_build[0]}") : null;
+                $property_file_path = StoragePath::propertyPath($property->id);
+                $property->image = !empty($image_build[0]) ? Storage::url("$property_file_path/$image_build[0]") : null;
             }
 
             $result_array = [
                 'user' => $user,
-                'properties' => $data
+                'properties' => $properties
             ];
 
             return ResponseFormatter::success($result_array);
@@ -376,43 +396,47 @@ class PropertyController extends Controller
     public function get_property($id)
     {
         try {
-            $data = Property::where('id', $id)->with('user')->first();
-            $property_image = ImageBuildProperty::where('property_id', $data->id)->first();
-            $images = [
-                'property' => [
-                    'bagian_depan' => isset($property_image->bangunan_depan) ? asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$property_image->bangunan_depan}") : null,
-                    'bagian_jalan' => isset($property_image->depan) ? asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$property_image->depan}") : null,
-                    'bagian_dalam' => isset($property_image->dalam) ? asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$property_image->dalam}") : null,
-                ],
-                'bedroom' => []
+            $property = Property::where('id', $id)->with('user')->first();
+            $property_image = ImageBuildProperty::where('property_id', $property->id)->first();
+
+            $images = [];
+            $images['property'] = [
+//                'bagian_depan' => isset($property_image->bangunan_depan) ? Storage::url(StoragePath::propertyPath($property->id) . "/$property_image->bangunan_depan") : null,
+//                'bagian_jalan' => isset($property_image->depan) ? Storage::url(StoragePath::propertyPath($property->id) . "/$property_image->depan") : null,
+//                'bagian_dalam' => isset($property_image->dalam) ? Storage::url(StoragePath::propertyPath($property->id) . "/$property_image->dalam") : null,
+                'bagian_depan' => $property_image->image_bangunan_depan_url(),
+                'bagian_jalan' => $property_image->image_depan_url(),
+                'bagian_dalam' => $property_image->image_dalam_url(),
             ];
 
-            $property_bedroom = BedroomFacilityProperty::where('property_id', $data->id)->get();
-            $images['bedroom'] = array();
+            $property_bedroom = BedroomFacilityProperty::where('property_id', $property->id)->get();
+            $images['bedroom'] = [];
             foreach ($property_bedroom as $item) {
-                $images['bedroom'][] = isset($item->image) ? asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-tidur/{$item->image}") : null;
+//                $images['bedroom'][] = isset($item->image) ? (Storage::url(StoragePath::propertyPath($property->id) . "/kamar-tidur/$item->image")) : null;
+                $images['bedroom'][] = $item->image_url();
             }
 
-            $property_bathroom = ImageBathroomProperty::where('property_id', $data->id)->first();
-            $images['bathroom'] = isset($property_bathroom->image) ? asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/{$property_bathroom->image}") : null;
+            $property_bathroom = ImageBathroomProperty::where('property_id', $property->id)->first();
+//            $images['bathroom'] = isset($property_bathroom->image) ? Storage::url(StoragePath::propertyPath($property->id) . "/kamar-mandi/$property_bathroom->image") : null;
+            $images['bathroom'] = $property_bathroom->image_url();
 
-            $property_facility = FacilityProperty::where('property_id', $data->id)->get();
+            $property_facility = FacilityProperty::where('property_id', $property->id)->get();
             $facility = [];
             foreach ($property_facility as $item) {
                 $facility[] = ListFacility::where('id', $item->facility_id)->first()['id'];
             }
 
-            $property_rules = RuleProperty::where('property_id', $data->id)->get();
+            $property_rules = RuleProperty::where('property_id', $property->id)->get();
             $rules = [];
             foreach ($property_rules as $item) {
                 $rules[] = ListRules::where('id', $item->rule_id)->first()['id'];
             }
 
-            $data->rules = $rules;
-            $data->facility = $facility;
-            $data->images = $images;
+            $property->rules = $rules;
+            $property->facility = $facility;
+            $property->images = $images;
 
-            return ResponseFormatter::success($data);
+            return ResponseFormatter::success($property);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }
@@ -534,22 +558,30 @@ class PropertyController extends Controller
         }
 
         try {
-            $property_id = 1;
-            $data = Property::findOrFail($property_id);
-            $data->fill($request->all());
-            $data->tanggal_dibuat = ResponseFormatter::timestampToDate($request->tanggal_dibuat);
-            $data->tanggal_mulai_sewa = ResponseFormatter::timestampToDate($request->tanggal_mulai_sewa);
-            $data->user_id = Auth::user()->id;
-            $data->save();
+            $property_id = $request->get('property_id');
+            $property = Property::findOrFail($property_id);
+            $property->fill($request->all());
+            $property->tanggal_dibuat = ResponseFormatter::timestampToDate($request->tanggal_dibuat);
+            $property->tanggal_mulai_sewa = ResponseFormatter::timestampToDate($request->tanggal_mulai_sewa);
+            $property->user_id = Auth::user()->id;
+            $property->save();
 
-            $image_property = ImageBuildProperty::where('property_id', $data->id)->first();
+            $image_property = ImageBuildProperty::where('property_id', $property->id)->first();
             if (isset($image_property)) {
-                $path_image_bangunan_depan = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->bangunan_depan}";
-                $path_image_depan = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->depan}";
-                $path_image_dalam = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->dalam}";
+//                $path_image_bangunan_depan = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->bangunan_depan}";
+//                $path_image_depan = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->depan}";
+//                $path_image_dalam = "/public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$image_property->dalam}";
+
+//                $path_image_bangunan_depan = StoragePath::propertyPath($property_id) . "/$image_property->bangunan_depan";
+//                $path_image_depan = StoragePath::propertyPath($property_id) . "/$image_property->depan";
+//                $path_image_dalam = StoragePath::propertyPath($property_id) . "/$image_property->dalam";
+
+                $path_image_bangunan_depan = $image_property->image_bangunan_depan_url();
+                $path_image_depan = $image_property->image_depan_url();
+                $path_image_dalam = $image_property->image_dalam_url();
             } else {
                 $image_property = new ImageBuildProperty();
-                $image_property->property_id = $data->id;
+                $image_property->property_id = $property->id;
                 $path_image_bangunan_depan = null;
                 $path_image_depan = null;
                 $path_image_dalam = null;
@@ -569,7 +601,8 @@ class PropertyController extends Controller
             if ($request->has('foto_rumah_depan')) {
                 $image_rumah_depan = $request->input('foto_rumah_depan');
                 $image_rumah_depan_name = time() . '-' . $request->name . '-rumah-depan';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_depan_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/" . $image_rumah_depan_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_depan_name";
                 $extension = $this->check_image($image_rumah_depan, $path);
                 $image_property->bangunan_depan = $image_rumah_depan_name . '.' . $extension;
             }
@@ -578,7 +611,8 @@ class PropertyController extends Controller
             if ($request->has('foto_rumah_jalan')) {
                 $image_rumah_jalan = $request->input('foto_rumah_jalan');
                 $image_rumah_jalan_name = time() . '-' . $request->name . '-rumah-jalan';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_jalan_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/" . $image_rumah_jalan_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_jalan_name";
                 $extension = $this->check_image($image_rumah_jalan, $path);
                 $image_property->depan = $image_rumah_jalan_name . '.' . $extension;
             }
@@ -586,7 +620,8 @@ class PropertyController extends Controller
             if ($request->has('foto_rumah_dalam')) {
                 $image_rumah_dalam = $request->input('foto_rumah_dalam');
                 $image_rumah_dalam_name = time() . '-' . $request->name . '-rumah-dalam';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/" . $image_rumah_dalam_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/" . $image_rumah_dalam_name;
+                $path = StoragePath::propertyPath($property->id) . "/$image_rumah_dalam_name";
                 $extension = $this->check_image($image_rumah_dalam, $path);
                 $image_property->dalam = $image_rumah_dalam_name . '.' . $extension;
             }
@@ -598,10 +633,11 @@ class PropertyController extends Controller
                 for ($i = 0; $i < $image_bedroom_count; $i++) {
                     $image = $request->input('foto_kamar_tidur')[$i];
                     $image_name = time() . '-' . $request->name . '-kamar-tidur';
-                    $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-tidur/" . $image_name;
+//                    $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-tidur/" . $image_name;
+                    $path = StoragePath::propertyPath($property->id) . "/kamar-tidur/$image_name";
                     $extension = $this->check_image($image, $path);
                     $image_bedroom = new BedroomFacilityProperty();
-                    $image_bedroom->property_id = $data->id;
+                    $image_bedroom->property_id = $property->id;
                     $image_bedroom->image = $image_name . '.' . $extension;
                     $image_bedroom->save();
                 }
@@ -610,32 +646,33 @@ class PropertyController extends Controller
             if ($request->has('foto_kamar_mandi')) {
                 $image = $request->input('foto_kamar_mandi');
                 $image_name = time() . '-' . $request->name . '-kamar-mandi';
-                $path = "public/uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/" . $image_name;
+//                $path = "public/uploads/properties/{$property->user[0]->fullname}/{$property->nama}/kamar-mandi/" . $image_name;
+                $path = StoragePath::propertyPath($property->id) . "/kamar-mandi/$image_name";
                 $extension = $this->check_image($image, $path);
                 $image_bathroom = new ImageBathroomProperty();
-                $image_bathroom->property_id = $data->id;
+                $image_bathroom->property_id = $property->id;
                 $image_bathroom->image = $image_name . '.' . $extension;
                 $image_bathroom->save();
             }
 
-            FacilityProperty::where('property_id', $data->id)->delete();
+            FacilityProperty::where('property_id', $property->id)->delete();
 
             $other_facility_count = count($request->fasilitas_lain);
 
             for ($i = 0; $i < $other_facility_count; $i++) {
                 $other_facility = new FacilityProperty();
-                $other_facility->property_id = $data->id;
+                $other_facility->property_id = $property->id;
                 $other_facility->facility_id = $request->fasilitas_lain[$i];
                 $other_facility->save();
             }
 
-            RuleProperty::where('property_id', $data->id)->delete();
+            RuleProperty::where('property_id', $property->id)->delete();
 
             $rules_property_count = count($request->rules);
 
             for ($i = 0; $i < $rules_property_count; $i++) {
                 $rule_property = new RuleProperty();
-                $rule_property->property_id = $data->id;
+                $rule_property->property_id = $property->id;
                 $rule_property->rule_id = $request->rules[$i];
                 $rule_property->save();
             }
@@ -645,7 +682,7 @@ class PropertyController extends Controller
                 Storage::delete($path_image_dalam);
                 Storage::delete($path_image_depan);
             }
-            return ResponseFormatter::success($data);
+            return ResponseFormatter::success($property);
         } catch (Exception $error) {
             return ResponseFormatter::exception_error($error->getMessage());
         }
@@ -786,11 +823,10 @@ class PropertyController extends Controller
                 $images = array();
                 $image_property = ImageBuildProperty::where('property_id', $item->id)->get();
                 foreach ($image_property as $row) {
-                    // dd($item->nama);
-                    $path_bangunan_depan = !empty($row->bangunan_depan) ?  asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/{$row->bangunan_depan}") : [];
-                    $path_depan = !empty($row->depan) ?  asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/{$row->depan}") : [];
-                    $path_dalam = !empty($row->dalam) ?  asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/{$row->dalam}") : [];
-                    // dd($path_bangunan_depan);
+                    $path_bangunan_depan = !empty($row->bangunan_depan) ? $row->image_bangunan_depan_url() : [];
+                    $path_depan = !empty($row->depan) ? $row->image_depan_url() : [];
+                    $path_dalam = !empty($row->dalam) ? $row->image_dalam_url() : [];
+
                     array_push($images, $path_bangunan_depan);
                     array_push($images, $path_depan);
                     array_push($images, $path_dalam);
@@ -798,13 +834,13 @@ class PropertyController extends Controller
 
                 $image_bedroom = BedroomFacilityProperty::where('id', $item->id)->get();
                 foreach ($image_bedroom as $row) {
-                    $path = asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/kamar-mandi/{$row->image}");
+                    $path = $row->image_url();
                     array_push($images, $path);
                 }
 
                 $image_bathroom = ImageBathroomProperty::where('id', $item->id)->get();
                 foreach ($image_bathroom as $row) {
-                    $path = asset("uploads/properties/{$item->user[0]->fullname}/{$item->nama}/kamar-mandi/{$row->image}");
+                    $path = $row->image_url();
                     array_push($images, $path);
                 }
 

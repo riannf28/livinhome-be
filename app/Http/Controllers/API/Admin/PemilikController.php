@@ -12,6 +12,7 @@ use App\Models\ListRules;
 use App\Models\Property;
 use App\Models\RuleProperty;
 use App\Models\Transaction\Transaction;
+use App\Utils\StoragePath;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ class PemilikController extends Controller
     public function index($type)
     {
         try {
-            $data = Property::with('user')
+            $data = Property::with(['user', 'image_property', 'bedroom_facility', 'image_bathroom'])
                 ->where('kategori', $type)
                 ->get();
             foreach ($data as $item) {
@@ -40,37 +41,28 @@ class PemilikController extends Controller
     public function detail($id)
     {
         try {
-            $data = Property::where('id', $id)->first();
+            $property = Property::where('id', $id)->first();
+
+            if (!$property) {
+                return ResponseFormatter::error(null, 'Data properti tidak ditemukan.', 404);
+            }
+
             $images = array();
 
-            $image_property = ImageBuildProperty::where('property_id', $id)->get();
-            foreach ($image_property as $item) {
-                $path_bangunan_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->bangunan_depan}");
-                $path_depan = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->depan}");
-                $path_dalam = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/{$item->dalam}");
-                array_push($images, $path_bangunan_depan);
-                array_push($images, $path_depan);
-                array_push($images, $path_dalam);
-            }
+            $images[] = $property->image_property->image_bangunan_depan_url();
+            $images[] = $property->image_property->image_depan_url();
+            $images[] = $property->image_property->image_dalam_url();
 
-            $image_bedroom = BedroomFacilityProperty::where('id', $id)->get();
-            foreach ($image_bedroom as $item) {
-                $path = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/{$item->image}");
-                array_push($images, $path);
-            }
+            $images[] = $property->bedroom_facility->image_url();
 
-            $image_bathroom = ImageBathroomProperty::where('id', $id)->get();
-            foreach ($image_bedroom as $item) {
-                $path = asset("uploads/properties/{$data->user[0]->fullname}/{$data->nama}/kamar-mandi/{$item->image}");
-                array_push($images, $path);
-            }
+            $images[] = $property->image_bathroom->image_url();
 
-            $data->image = $images;
+            $property->image = $images;
 
-            $data->transaction_success = Transaction::where('property_id', $id)
+            $property->transaction_success = Transaction::where('property_id', $id)
                 ->where('status', true)
                 ->count();
-            $data->user[0]->pemilik_property = Property::where('user_id', $data->user_id)->count();
+            $property->user[0]->pemilik_property = Property::where('user_id', $property->user_id)->count();
 
             $rules_data = RuleProperty::where('property_id', $id)->get();
             $rules = array();
@@ -83,14 +75,13 @@ class PemilikController extends Controller
                 unset($list_rule_array['deleted_at']);
                 unset($list_rule_array['created_at']);
 
-                array_push($rules, $list_rule_array);
+                $rules[] = $list_rule_array;
             }
-            $data->rules = $rules;
+            $property->rules = $rules;
 
 
-            return ResponseFormatter::success($data);
+            return ResponseFormatter::success($property);
         } catch (Exception $error) {
-            return $error->getMessage();
             return ResponseFormatter::success($error->getMessage(), 'Error');
         }
     }
